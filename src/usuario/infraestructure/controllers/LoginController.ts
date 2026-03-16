@@ -28,7 +28,7 @@ export class LoginController {
                 secure: process.env.NODE_ENV === 'production',
                 path: '/',
                 sameSite: 'lax',
-                maxAge: 43200000, // 12 horas
+                maxAge: 43200000,
             });
 
             res.status(200).json({

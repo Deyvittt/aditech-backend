@@ -8,25 +8,22 @@ const signale = new Signale({scope: 'MysqlDependenciaRepository'});
 export class MysqlDependenciaRepository implements DependenciaRepository {
     
     async getDependencias(): Promise<Dependencia[] | null> {
-        const sql = "CALL getDependencias()"; // Tu procedimiento almacenado ya hace el trabajo
+        const sql = "CALL getDependencias()"; 
         try {
             const [result]: any = await query(sql, []);
             
-            // Si el procedimiento no devuelve nada, retorna un arreglo vacío
             if (!result || !result[0]) {
                 return [];
             }
             
-            // La respuesta del SP ya es un arreglo de dependencias, lo retornamos directamente
             return result[0] as Dependencia[];
 
         } catch (error: any) {
             signale.error("Error en getDependencias:", error);
-            return null; // En caso de un error de BD, retornamos null
+            return null;
         }
     }
 
-    // Dejamos las otras funciones como estaban
     async getDependenciaByDireccionId(direccionId: string): Promise<Dependencia|null>{
         try{
             const queryStr: string = "CALL getDependenciaByDireccionId(?)";

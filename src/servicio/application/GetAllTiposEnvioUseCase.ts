@@ -5,7 +5,6 @@ export class GetAllTiposEnvioUseCase {
 
     async execute(): Promise<any[] | null> {
         try {
-            // Asumiremos que crearemos una función en el repositorio para esto
             return await this.servicioRepository.getAllTiposEnvio();
         } catch (error) {
             console.error("Error en GetAllTiposEnvioUseCase", error);

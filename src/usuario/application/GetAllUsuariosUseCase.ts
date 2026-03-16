@@ -1,4 +1,4 @@
-import { UsuarioRepository } from "../domain/UsuarioRepository"; // O donde esté tu interfaz
+import { UsuarioRepository } from "../domain/UsuarioRepository";
 
 export class GetAllUsuariosUseCase {
     constructor(private readonly usuarioRepository: UsuarioRepository) {}

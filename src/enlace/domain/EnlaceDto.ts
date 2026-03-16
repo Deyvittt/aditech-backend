@@ -10,7 +10,6 @@ export class EnlaceDto{
         readonly dependencia: string,
         readonly cargo: string,
         readonly direccion: string,
-        //adscripcion o departamento
         readonly adscripcion: string,
     ){}
 }

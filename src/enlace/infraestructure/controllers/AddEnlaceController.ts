@@ -9,23 +9,20 @@ export class AddEnlaceController {
         const data = req.body;
 
         try {
-            // Creamos la instancia con los 12 argumentos obligatorios
             const enlace = new Enlace(
                 data.nombre,
                 data.apellidoP,
                 data.apellidoM,
                 data.correo,
                 data.telefono,
-                1, // Estatus default (Activo)
-                data.adscripcion_id || null, // Puede ser null
+                1, 
+                data.adscripcion_id || null, 
                 data.cargo_id,
-                data.auth_user_id, // ID del usuario que crea
-                1, // Tipo Persona default
+                data.auth_user_id, 
+                1,
                 data.direccion_id,
                 
-                // --- ¡ESTE ES EL QUE FALTABA! ---
                 data.dependencia_id 
-                // --------------------------------
             );
 
             const createdEnlace = await this.addEnlaceUseCase.execute(enlace);

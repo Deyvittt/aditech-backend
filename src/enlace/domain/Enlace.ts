@@ -6,17 +6,14 @@ export class Enlace {
         public correo: string,
         public telefono: string,
         public estatus: number,
-        public adscripcionId: number | null, // Puede ser null
+        public adscripcionId: number | null,
         public cargoId: number,
         public userId: number | null,
         public tipoPersonaId: number,
         public direccionId: number,
-        
-        // --- ¡ESTE ES EL QUE FALTABA! ---
         public dependenciaId: number, 
-        // ---------------------------------
 
-        public id?: number // El ID es opcional porque al crear no existe aún
+        public id?: number 
     ) {}
 
     setId(id: number) {

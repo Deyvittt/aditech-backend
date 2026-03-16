@@ -2,211 +2,490 @@ import { PDFDocument, StandardFonts, rgb, PDFFont, PageSizes, PDFPage } from 'pd
 import * as fs from 'fs';
 import * as path from 'path';
 
-// Helper para texto seguro
+// HELPERS GENERALES
 const safeText = (text: any, fallback = '') => String(text || fallback).trim();
 
-const COLORS = {
-    headerBg: rgb(0.502, 0.094, 0.141),
-    sectionBg: rgb(0.941, 0.941, 0.941),
-    darkText: rgb(0, 0, 0),
-    lightText: rgb(0.3, 0.3, 0.3),
-    border: rgb(0.4, 0.4, 0.4),
+const dateStr = (d: any) => {
+    if (!d) return 'N/A';
+    const date = new Date(d);
+    return isNaN(date.getTime()) ? safeText(d) : date.toLocaleDateString('es-MX', { timeZone: 'UTC' });
 };
 
-// --- Helpers de Dibujo ---
-function drawFilledBox(page: PDFPage, x: number, y: number, w: number, h: number, color: any, borderColor: any = COLORS.border) {
-    // Eliminé el parámetro extra para evitar errores, usa el default
-    page.drawRectangle({ x, y, width: w, height: h, color, borderColor, borderWidth: 0.5 });
+// PALETA DE COLORES
+const C = {
+    red:      rgb(0.502, 0.094, 0.141),
+    white:    rgb(1, 1, 1),
+    black:    rgb(0, 0, 0),
+    grayBg:   rgb(0.91, 0.91, 0.91),
+    grayText: rgb(0.35, 0.35, 0.35),
+    border:   rgb(0.55, 0.55, 0.55),
+    lightBg:  rgb(0.97, 0.97, 0.97),  
+};
+
+type Fonts = { reg: PDFFont; bold: PDFFont; italic: PDFFont };
+
+// PRIMITIVOS DE DIBUJO
+function rect(
+    page: PDFPage,
+    x: number, y: number, w: number, h: number,
+    fill = C.white, border = C.border, bw = 0.5
+) {
+    page.drawRectangle({ x, y, width: w, height: h, color: fill, borderColor: border, borderWidth: bw });
 }
 
-function drawCheckbox(page: PDFPage, x: number, y: number, label: string, checked: boolean, font: PDFFont, bold: PDFFont) {
-    page.drawRectangle({ x, y: y - 10, width: 12, height: 12, borderColor: COLORS.darkText, borderWidth: 1, color: rgb(1, 1, 1) });
-    if (checked) page.drawText('X', { x: x + 2.5, y: y - 8, font: bold, size: 10, color: COLORS.darkText });
-    page.drawText(label, { x: x + 18, y: y - 8, font, size: 8.5, color: COLORS.darkText });
+function labelRow(
+    page: PDFPage,
+    x: number, y: number, w: number, h: number,
+    label: string, value: string,
+    fonts: Fonts, labelW = 100
+) {
+    rect(page, x,          y, labelW,     h, C.grayBg);
+    rect(page, x + labelW, y, w - labelW, h, C.lightBg);
+
+    page.drawText(label, {
+        x: x + 6, y: y + h / 2 - 4,
+        font: fonts.bold, size: 9, color: C.black
+    });
+    const maxChars = Math.floor((w - labelW - 12) / 5.5);
+    page.drawText(safeText(value).substring(0, maxChars), {
+        x: x + labelW + 6, y: y + h / 2 - 4,
+        font: fonts.reg, size: 9, color: C.grayText
+    });
 }
 
-function drawMultilineText(page: PDFPage, text: string, x: number, y: number, maxWidth: number, font: PDFFont) {
+function sectionHeader(
+    page: PDFPage,
+    x: number, y: number, w: number, h: number,
+    text: string, fonts: Fonts, size = 9
+) {
+    rect(page, x, y, w, h, C.grayBg);
+    page.drawText(text, {
+        x: x + 8, y: y + h / 2 - 4,
+        font: fonts.bold, size, color: C.black
+    });
+}
+
+function multiline(
+    page: PDFPage,
+    text: string,
+    x: number, y: number, maxW: number,
+    font: PDFFont, size = 9, lineH = 13
+): number {
+    if (!text.trim()) return y;
     const words = text.split(' ');
-    let currentLine = '';
-    let currentY = y;
-    
+    let line = '';
+    let curY = y;
     for (const word of words) {
-        const testLine = currentLine + (currentLine ? ' ' : '') + word;
-        const width = font.widthOfTextAtSize(testLine, 9);
-        if (width > maxWidth && currentLine !== '') {
-            page.drawText(currentLine, { x, y: currentY, font, size: 9, color: COLORS.darkText });
-            currentLine = word;
-            currentY -= 12;
+        const test = line ? `${line} ${word}` : word;
+        if (font.widthOfTextAtSize(test, size) > maxW && line) {
+            page.drawText(line, { x, y: curY, font, size, color: C.black });
+            line = word;
+            curY -= lineH;
         } else {
-            currentLine = testLine;
+            line = test;
         }
     }
-    page.drawText(currentLine, { x, y: currentY, font, size: 9, color: COLORS.darkText });
+    if (line) page.drawText(line, { x, y: curY, font, size, color: C.black });
+    return curY;
 }
 
-// --- CLASE GENERADORA ---
+function checkbox(
+    page: PDFPage,
+    x: number, y: number,
+    label: string, checked: boolean,
+    fonts: Fonts, size = 8.5
+) {
+    rect(page, x, y - 10, 11, 11, checked ? C.black : C.white, C.black, 1);
+    if (checked) page.drawText('X', { x: x + 1.5, y: y - 8, font: fonts.bold, size: 8.5, color: C.white });
+    page.drawText(label, { x: x + 15, y: y - 8, font: fonts.reg, size, color: C.black });
+}
+
+function textAreaHeight(text: string, maxW: number, font: PDFFont, size = 9, lineH = 13): number {
+    if (!text.trim()) return 30;
+    const words = text.split(' ');
+    let line = '';
+    let lines = 1;
+    for (const word of words) {
+        const test = line ? `${line} ${word}` : word;
+        if (font.widthOfTextAtSize(test, size) > maxW && line) { lines++; line = word; }
+        else { line = test; }
+    }
+    return Math.max(30, lines * lineH + 10);
+}
+
+// GENERADOR PRINCIPAL
 export class PdfGenerator {
     public static async generate(s: any): Promise<Uint8Array> {
-        console.log("📄 Creando PDF para:", s.folio);
-        
-        const doc = await PDFDocument.create();
+        console.log(`Generando PDF: ${s.folio}`);
+
+        const doc  = await PDFDocument.create();
         const page = doc.addPage(PageSizes.Letter);
         const { width, height } = page.getSize();
-        const margin = 45;
-        const contentW = width - 2 * margin;
+        const M  = 28;
+        const CW = width - 2 * M;
 
-        const font = await doc.embedFont(StandardFonts.Helvetica);
-        const bold = await doc.embedFont(StandardFonts.HelveticaBold);
-        const italic = await doc.embedFont(StandardFonts.HelveticaOblique);
+        const fonts: Fonts = {
+            reg:    await doc.embedFont(StandardFonts.Helvetica),
+            bold:   await doc.embedFont(StandardFonts.HelveticaBold),
+            italic: await doc.embedFont(StandardFonts.HelveticaOblique),
+        };
 
-        let y = height - 30;
+        let y = height - 28;
 
-        // 1. LOGOS (Intento seguro)
+        // SECCIÓN 1 — LOGOS + ENCABEZADO
+        const logoH = 42;
+
         try {
             const logoAdt = path.resolve(process.cwd(), 'assets', 'logo_adt.png');
             const logoGob = path.resolve(process.cwd(), 'assets', 'logo_gob.png');
-            
             if (fs.existsSync(logoAdt)) {
                 const img = await doc.embedPng(fs.readFileSync(logoAdt));
-                page.drawImage(img, { x: margin, y: y - 35, width: 110, height: 35 });
+                page.drawImage(img, { x: M, y: y - logoH, width: 140, height: logoH });
             }
             if (fs.existsSync(logoGob)) {
                 const img = await doc.embedPng(fs.readFileSync(logoGob));
-                page.drawImage(img, { x: width - margin - 110, y: y - 35, width: 110, height: 35 });
+                page.drawImage(img, { x: width - M - 115, y: y - logoH, width: 115, height: logoH });
             }
-        } catch (e) { console.log("Logos no cargados, continuando..."); }
+        } catch (_) {}
 
-        y -= 45;
+        //Título en rojo pegado a la derecha
+        const line1 = 'DIRECCIÓN DE INFRAESTRUCTURA';
+        const line2 = 'TECNOLÓGICA Y TELECOMUNICACIONES';
+        const cx = width / 2;
+        page.drawText(line1, { x: width - M - fonts.bold.widthOfTextAtSize(line1, 10), y: y - 14, font: fonts.bold, size: 10, color: C.red });
+        page.drawText(line2, { x: width - M - fonts.bold.widthOfTextAtSize(line2, 9),  y: y - 27, font: fonts.bold, size: 9,  color: C.red });
 
-        // ENCABEZADO
-        drawFilledBox(page, margin, y - 25, contentW, 25, COLORS.headerBg, COLORS.headerBg);
-        page.drawText('DIRECCIÓN DE INFRAESTRUCTURA TECNOLÓGICA Y TELECOMUNICACIONES', { x: margin + 8, y: y - 10, font: bold, size: 7.5, color: rgb(1,1,1) });
-        page.drawText('HUMANISMO QUE TRANSFORMA', { x: width - margin - 145, y: y - 22, font: italic, size: 8.5, color: rgb(1,1,1) });
+        y -= logoH + 10;
 
-        y -= 35;
-        const title = 'REPORTE DE SERVICIO';
-        page.drawText(title, { x: (width - bold.widthOfTextAtSize(title, 18)) / 2, y, font: bold, size: 18, color: COLORS.headerBg });
-
-        y -= 35;
-        // Folio
-        drawFilledBox(page, width - margin - 130, y - 28, 130, 28, COLORS.sectionBg);
-        page.drawText(`FOLIO: ${safeText(s.folio)}`, { x: width - margin - 118, y: y - 18, font: bold, size: 12, color: COLORS.headerBg });
-
-        y -= 40;
-        // Info General
-        drawFilledBox(page, margin, y - 75, contentW, 75, rgb(1,1,1));
-        const lblX = margin + 12, valX = margin + 110;
-        
-        page.drawText('DEPENDENCIA:', { x: lblX, y: y - 18, font: bold, size: 9.5 });
-        page.drawText(safeText(s.dependencia || 'Universidad Politécnica de Chiapas'), { x: valX, y: y - 18, font, size: 9.5, color: COLORS.lightText });
-        
-        page.drawText('SOLICITANTE:', { x: lblX, y: y - 40, font: bold, size: 9.5 });
-        page.drawText(safeText(s.nombreSolicitante), { x: valX, y: y - 40, font, size: 9.5, color: COLORS.lightText });
-        
-        page.drawText('CARGO:', { x: lblX, y: y - 62, font: bold, size: 9.5 });
-        page.drawText(safeText(s.cargo || 'Jefe de Departamento'), { x: valX, y: y - 62, font, size: 9.5, color: COLORS.lightText });
-
-        y -= 87;
-        // Tabla Fechas
-        drawFilledBox(page, margin, y - 18, contentW, 18, COLORS.sectionBg);
-        const colW = contentW / 4;
-        ['INICIO', 'TÉRMINO', 'ENVÍO', 'UBICACIÓN'].forEach((h, i) => {
-            page.drawText(h, { x: margin + i * colW + 15, y: y - 12, font: bold, size: 9 });
+        // SECCIÓN 2 — TÍTULO PRINCIPAL
+        const titulo = 'REPORTE DE SERVICIO';
+        page.drawText(titulo, {
+            x: cx - fonts.bold.widthOfTextAtSize(titulo, 16) / 2,
+            y, font: fonts.bold, size: 16, color: C.black
         });
 
-        drawFilledBox(page, margin, y - 50, contentW, 32, rgb(1,1,1));
-        const dateStr = (d: any) => d ? new Date(d).toLocaleDateString('es-MX') : 'N/A';
-        
-        // Datos Tabla
-        let dy = y - 30;
-        // Col 1
-        page.drawText('FECHA: ' + dateStr(s.fechaInicio), { x: margin + 5, y: dy, font, size: 8 });
-        page.drawText('HORA: ' + safeText(s.horaInicio), { x: margin + 5, y: dy - 10, font, size: 8 });
-        // Col 2
-        page.drawText('FECHA: ' + dateStr(s.fechaTermino), { x: margin + colW + 5, y: dy, font, size: 8 });
-        page.drawText('HORA: ' + safeText(s.horaTermino), { x: margin + colW + 5, y: dy - 10, font, size: 8 });
-        // Col 3 (Envio)
-        page.drawText(safeText(s.tipoEnvio || s.tipoEnvioNombre), { x: margin + colW * 2 + 5, y: dy - 5, font, size: 8 });
-        // Col 4 (Dirección) - Aquí usamos el nombre si existe
-        page.drawText(safeText(s.direccion || s.direccionNombre), { x: margin + colW * 3 + 5, y: dy - 5, font, size: 8 });
+        y -= 22;
 
-        y -= 68;
-        // Checkboxes Servicios
-        drawFilledBox(page, margin, y - 48, contentW, 48, COLORS.sectionBg);
-        page.drawText('TIPO DE SERVICIO', { x: margin + 8, y: y - 12, font: bold, size: 10 });
-        
-        y -= 24;
-        let cx = margin + 12;
-        // Buscamos coincidencia en el nombre (Flexible)
-        const currentService = safeText(s.tipoServicio || s.tipoServicioNombre).toUpperCase();
-        
-        ['ASESORIA', 'AUDITORIA', 'MANTENIMIENTO FÍSICO', 'INFRAESTRUCTURA', 
-         'SERVICIOS DIGITALES', 'MANTENIMIENTO DE PANELES', 'SUPERVISIÓN A INFRAESTRUCTURA'].forEach((srv, i) => {
-            if (i === 4) { y -= 20; cx = margin + 12; }
-            
-            // Lógica de match flexible (elimina acentos para comparar)
-            const cleanSrv = srv.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            const cleanCur = currentService.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            const checked = cleanCur.includes(cleanSrv) || cleanSrv.includes(cleanCur);
-            
-            drawCheckbox(page, cx, y, srv, checked, font, bold);
-            cx += contentW / 4;
+        // SECCIÓN 3 — FILA REPORTE / FOLIO
+        const folioH  = 22;
+        const leftW   = CW * 0.55;
+        const rightW  = CW * 0.45;
+
+        rect(page, M,          y - folioH, leftW,  folioH, C.grayBg);
+        rect(page, M + leftW,  y - folioH, rightW, folioH, C.grayBg);
+
+        page.drawText('REPORTE DE SERVICIO', {
+            x: M + 8, y: y - folioH / 2 - 4,
+            font: fonts.bold, size: 9.5, color: C.black
         });
 
-        y -= 32;
-        // Descripciones
-        const drawSection = (title: string, content: string) => {
-            drawFilledBox(page, margin, y - 18, contentW, 18, COLORS.sectionBg);
-            page.drawText(title, { x: margin + 8, y: y - 12, font: bold, size: 9.5 });
-            drawFilledBox(page, margin, y - 60, contentW, 42, rgb(1,1,1));
-            drawMultilineText(page, safeText(content), margin + 5, y - 30, contentW - 10, font);
-            y -= 68;
-        };
+        //FOLIO
+        const folioLabel = 'FOLIO: ';
+        const folioNum   = safeText(s.folio);
+        const folioLabelW = fonts.reg.widthOfTextAtSize(folioLabel, 11);
+        const folioNumW   = fonts.bold.widthOfTextAtSize(folioNum, 11);
+        const folioStartX = M + leftW + (rightW - folioLabelW - folioNumW) / 2;
+        page.drawText(folioLabel, { x: folioStartX,              y: y - folioH / 2 - 4, font: fonts.reg,  size: 11, color: C.black });
+        page.drawText(folioNum,   { x: folioStartX + folioLabelW, y: y - folioH / 2 - 4, font: fonts.bold, size: 11, color: C.black });
 
-        drawSection('DESCRIPCIÓN DE LA FALLA Y/O PROBLEMA', s.descripcionFalla);
-        drawSection('DESCRIPCIÓN DE LA ACTIVIDAD REALIZADA', s.descripcionActividad);
+        y -= folioH + 3;
 
-        y -= 15;
-        // Estado
-        drawFilledBox(page, margin, y - 20, contentW, 20, COLORS.sectionBg);
-        page.drawText('ESTADO DEL SERVICIO:', { x: margin + 12, y: y - 10, font: bold, size: 9.5 });
+        // SECCIÓN 4 — TABLA DEPENDENCIA / SOLICITANTE / CARGO
+        const rH  = 20;
+        const lbW = 110;
+
+        labelRow(page, M, y - rH,       CW, rH, 'DEPENDENCIA:', safeText(s.dependencia),                      fonts, lbW);
+        labelRow(page, M, y - rH * 2,   CW, rH, 'SOLICITANTE:', safeText(s.nombreSolicitante),                 fonts, lbW);
+        labelRow(page, M, y - rH * 3,   CW, rH, 'CARGO:',       safeText(s.cargo || s.cargoNombre || '—'),     fonts, lbW);
+
+        y -= rH * 3 + 3;
+
+        // SECCIÓN 5 — TABLA FECHAS (4 columnas)
+        const dH  = 19;
+        const cW4 = CW / 4;
+        const headers4 = ['INICIO', 'TÉRMINO', 'ENVÍO', 'NIVEL'];
+
+        //Encabezados
+        headers4.forEach((h, i) => {
+            rect(page, M + i * cW4, y - dH, cW4, dH, C.grayBg);
+            const hw = fonts.bold.widthOfTextAtSize(h, 8.5);
+            page.drawText(h, { x: M + i * cW4 + (cW4 - hw) / 2, y: y - dH / 2 - 4, font: fonts.bold, size: 8.5, color: C.black });
+        });
+
+        //Fila 1: fechas + envio (span 2 filas) + nivel (span 2 filas)
+        rect(page, M,          y - dH * 2, cW4, dH, C.lightBg);
+        rect(page, M + cW4,    y - dH * 2, cW4, dH, C.lightBg);
+        rect(page, M + cW4*2,  y - dH * 3, cW4, dH * 2, C.lightBg);
+        rect(page, M + cW4*3,  y - dH * 3, cW4, dH * 2, C.lightBg);
+
+        page.drawText('FECHA: ' + dateStr(s.fechaInicio),  { x: M + 4,        y: y - dH * 2 + dH / 2 - 2, font: fonts.reg, size: 8, color: C.black });
+        page.drawText('FECHA: ' + dateStr(s.fechaTermino), { x: M + cW4 + 4,  y: y - dH * 2 + dH / 2 - 2, font: fonts.reg, size: 8, color: C.black });
+
+        //Fila 2: horas
+        rect(page, M,       y - dH * 3, cW4, dH, C.lightBg);
+        rect(page, M + cW4, y - dH * 3, cW4, dH, C.lightBg);
+
+        page.drawText('HORA: ' + safeText(s.horaInicio),  { x: M + 4,       y: y - dH * 3 + dH / 2 - 2, font: fonts.reg, size: 8, color: C.black });
+        page.drawText('HORA: ' + safeText(s.horaTermino), { x: M + cW4 + 4, y: y - dH * 3 + dH / 2 - 2, font: fonts.reg, size: 8, color: C.black });
+
+        //Valores de celdas span
+        const envioVal = safeText(s.tipoEnvio || s.tipoEnvioNombre || '—');
+        const nivelVal = safeText(s.nivel || '');
+        page.drawText(envioVal, { x: M + cW4*2 + 4, y: y - dH * 2 - dH / 2 - 2, font: fonts.reg, size: 8, color: C.black });
+        page.drawText(nivelVal, { x: M + cW4*3 + 4, y: y - dH * 2 - dH / 2 - 2, font: fonts.reg, size: 8, color: C.black });
+
+        y -= dH * 3 + 4;
+
+        // SECCIÓN 6 — DIAGNÓSTICO (Tipo de Servicio checkboxes)
+        sectionHeader(page, M, y - 18, CW, 18, 'DIAGNÓSTICO', fonts, 9.5);
+        y -= 16;
+
+        const servicios = ['ASESORÍA', 'AUDITORÍA', 'MANT. FÍSICO', 'INFRAESTRUCTURA', 'SERV. DIGITALES', 'MANT. PANELES', 'SUP. INFRAESTR.'];
+        const serviciosMatch = ['ASESORIA', 'AUDITORIA', 'MANTENIMIENTO FISICO', 'INFRAESTRUCTURA', 'SERVICIOS DIGITALES', 'MANTENIMIENTO DE PANELES', 'SUPERVISION'];
+        const currentSvc = safeText(s.tipoServicio || '').toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const cbW = CW / servicios.length;
+        const cbH = 24;
+
+        servicios.forEach((srv, i) => {
+            const cleanMatch = serviciosMatch[i].normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            const isChecked  = currentSvc.includes(cleanMatch.substring(0, 6)) || cleanMatch.includes(currentSvc.substring(0, 6));
+            rect(page, M + i * cbW, y - cbH, cbW, cbH, C.white);
+
+            //Checkbox centrado arriba
+            const boxX = M + i * cbW + cbW / 2 - 6;
+            rect(page, boxX, y - 14, 12, 12, isChecked ? C.black : C.white, C.black, 1);
+            if (isChecked) page.drawText('X', { x: boxX + 2, y: y - 12, font: fonts.bold, size: 9, color: C.white });
+
+            //Label centrado abajo
+            const lSize  = 6.5;
+            const lWidth = fonts.reg.widthOfTextAtSize(srv, lSize);
+            page.drawText(srv, {
+                x: M + i * cbW + (cbW - lWidth) / 2,
+                y: y - cbH + 4,
+                font: fonts.reg, size: lSize, color: C.black
+            });
+        });
+
+        y -= cbH + 3;
+
+        // SECCIÓN 7 — DESCRIPCIÓN DE LA FALLA
+        const fallaH = textAreaHeight(safeText(s.descripcionFalla), CW - 10, fonts.reg);
+
+        sectionHeader(page, M, y - 18, CW, 18, 'DESCRIPCIÓN DE LA FALLA Y/O PROBLEMA', fonts);
+        rect(page, M, y - 16 - fallaH, CW, fallaH, C.white);
+        multiline(page, safeText(s.descripcionFalla, '—'), M + 6, y - 26, CW - 12, fonts.reg);
+
+        y -= 18 + fallaH + 4;
+
+        // SECCIÓN 8 — TIPO ACTIVIDAD + DESCRIPCIÓN ACTIVIDAD
+        const actividades     = ['INSTALACIÓN', 'CONFIGURACIÓN'];
+        const actividadesMatch = ['INSTALACION', 'CONFIGURACION'];
+        const currentAct = safeText(s.tipoActividad || s.tipoActividadNombre || '').toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const actCbW = CW / actividades.length;
+        const actCbH = 24;
+
+        actividades.forEach((act, i) => {
+            const cleanMatch = actividadesMatch[i].normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            const isChecked = currentAct.length >= 3 && (
+                currentAct.includes(cleanMatch.substring(0, 5)) ||
+                cleanMatch.includes(currentAct.substring(0, 5))
+            );
+            rect(page, M + i * actCbW, y - actCbH, actCbW, actCbH, C.white);
+
+            const boxX = M + i * actCbW + actCbW / 2 - 6;
+            rect(page, boxX, y - 14, 12, 12, isChecked ? C.black : C.white, C.black, 1);
+            if (isChecked) page.drawText('X', { x: boxX + 2, y: y - 12, font: fonts.bold, size: 9, color: C.white });
+
+            const lWidth = fonts.bold.widthOfTextAtSize(act, 8);
+            page.drawText(act, {
+                x: M + i * actCbW + (actCbW - lWidth) / 2,
+                y: y - actCbH + 4,
+                font: fonts.bold, size: 8, color: C.black
+            });
+        });
+
+        y -= actCbH + 2;
+
+        const actividadH = textAreaHeight(safeText(s.descripcionActividad), CW - 10, fonts.reg);
+
+        sectionHeader(page, M, y - 18, CW, 18, 'DESCRIPCIÓN DE LA ACTIVIDAD REALIZADA', fonts);
+        rect(page, M, y - 16 - actividadH, CW, actividadH, C.white);
+        multiline(page, safeText(s.descripcionActividad, '—'), M + 6, y - 26, CW - 12, fonts.reg);
+
+        y -= 18 + actividadH + 4;
+
+        // SECCIÓN 9 — ESTADO DEL SERVICIO + FOTOS
+        const estadoH = 28;
+        const halfCW  = CW / 2;
+
+        //Headers
+        sectionHeader(page, M,          y - 18, halfCW, 18, 'ESTADO DEL SERVICIO', fonts);
+        sectionHeader(page, M + halfCW, y - 18, halfCW, 18, 'FOTOS',               fonts);
+
+        //Contenido estado
+        rect(page, M,          y - 18 - estadoH, halfCW, estadoH, C.white);
+        rect(page, M + halfCW, y - 18 - estadoH, halfCW, estadoH, C.white);
+
         const st = safeText(s.estadoServicio).toUpperCase();
-        drawCheckbox(page, margin + 150, y - 2, 'CONCLUIDO', st.includes('CONCLUIDO'), font, bold);
-        drawCheckbox(page, margin + 260, y - 2, 'EN SEGUIMIENTO', st.includes('SEGUIMIENTO'), font, bold);
+        checkbox(page, M + 12,             y - 28, 'CONCLUIDO',      st.includes('CONCLUIDO'),   fonts);
+        checkbox(page, M + halfCW / 2 + 5, y - 28, 'EN SEGUIMIENTO', st.includes('SEGUIMIENTO'), fonts);
 
-        // Fotos
-        page.drawText('FOTOS:', { x: width - margin - 120, y: y - 10, font: bold, size: 9.5 });
-        const hasPhotos = s.fotos && s.fotos.length > 2;
-        drawCheckbox(page, width - margin - 75, y - 2, 'SI', !!hasPhotos, font, bold);
-        drawCheckbox(page, width - margin - 35, y - 2, 'NO', !hasPhotos, font, bold);
+        //Contenido fotos
+        const fotosArr: string[] = s.fotos
+            ? safeText(s.fotos).split(',').map((f: string) => f.trim()).filter(Boolean)
+            : [];
+        const hasPhotos = fotosArr.length > 0;
+        checkbox(page, M + halfCW + 15,            y - 28, hasPhotos ? `SÍ (${fotosArr.length} foto${fotosArr.length > 1 ? 's' : ''})` : 'SÍ', hasPhotos,  fonts);
+        checkbox(page, M + halfCW + halfCW / 2,    y - 28, 'NO',                                                                                 !hasPhotos, fonts);
 
-        y -= 28;
-        // Observaciones
-        drawSection('OBSERVACIONES', s.observaciones);
+        y -= 18 + estadoH + 4;
 
-        // Firmas
-        const fy = 90;
-        page.drawLine({ start: { x: margin + 15, y: fy }, end: { x: margin + 215, y: fy }, thickness: 1 });
-        page.drawText('RESPONSABLE DEL SERVICIO', { x: margin + 35, y: fy - 15, font: bold, size: 8 });
-        // Nombre Receptor Real
-        page.drawText(safeText(s.nombreReceptor), { x: margin + 50, y: fy - 28, font, size: 8, color: COLORS.lightText });
+        // SECCIÓN 10 — OBSERVACIONES
+        const obsText = safeText(s.observaciones, 'Sin observaciones.');
+        const obsH    = textAreaHeight(obsText, CW - 10, fonts.reg);
 
-        const fx = width - margin - 215;
-        page.drawLine({ start: { x: fx, y: fy }, end: { x: fx + 200, y: fy }, thickness: 1 });
-        page.drawText('RECEPTOR DE LA DEPENDENCIA', { x: fx + 20, y: fy - 15, font: bold, size: 8 });
-        // Nombre Solicitante Real
-        page.drawText(safeText(s.nombreSolicitante), { x: fx + 35, y: fy - 28, font, size: 8, color: COLORS.lightText });
+        sectionHeader(page, M, y - 18, CW, 18, 'OBSERVACIONES', fonts);
+        rect(page, M, y - 16 - obsH, CW, obsH, C.white);
+        multiline(page, obsText, M + 6, y - 26, CW - 12, fonts.reg);
 
-        // Sello
-        const sx = (width - 110) / 2;
-        page.drawText('SELLO', { x: sx + 42, y: fy + 8, font: bold, size: 9.5 });
-        drawFilledBox(page, sx, fy - 42, 110, 48, rgb(1,1,1), COLORS.border); // <--- AQUI ESTABA EL ERROR DEL 1.5 (QUITADO)
+        y -= 18 + obsH + 10;
+
+        // SECCIÓN 11 — FIRMAS
+        const sigY = Math.max(y - 80, 110);
+        const sigW = 175;
+        const lineY = sigY + 28;
+
+        //Responsable (izquierda)
+        page.drawText(safeText(s.nombreReceptor), {
+            x: M + 4, y: lineY + 16,
+            font: fonts.bold, size: 10, color: C.black
+        });
+        page.drawLine({ start: { x: M, y: lineY }, end: { x: M + sigW, y: lineY }, thickness: 0.8, color: C.black });
+        page.drawText('RESPONSABLE DEL SERVICIO', {
+            x: M + sigW / 2 - fonts.bold.widthOfTextAtSize('RESPONSABLE DEL SERVICIO', 8) / 2,
+            y: lineY - 13,
+            font: fonts.bold, size: 8, color: C.black
+        });
+        page.drawText('(NOMBRE Y FIRMA)', {
+            x: M + sigW / 2 - fonts.reg.widthOfTextAtSize('(NOMBRE Y FIRMA)', 7.5) / 2,
+            y: lineY - 24,
+            font: fonts.reg, size: 7.5, color: C.grayText
+        });
+
+        //Sello (centro)
+        const selloX = (width - 120) / 2;
+        page.drawText('SELLO', {
+            x: selloX + 46, y: lineY + 8,
+            font: fonts.bold, size: 9, color: C.black
+        });
+        rect(page, selloX, sigY - 28, 120, 60, C.white, C.border, 1);
+
+        //Receptor (derecha)
+        const recX = width - M - sigW;
+        page.drawText(safeText(s.nombreSolicitante), {
+            x: recX + 4, y: lineY + 16,
+            font: fonts.bold, size: 10, color: C.black
+        });
+        page.drawLine({ start: { x: recX, y: lineY }, end: { x: recX + sigW, y: lineY }, thickness: 0.8, color: C.black });
+        page.drawText('RECEPTOR DE LA DEPENDENCIA', {
+            x: recX + sigW / 2 - fonts.bold.widthOfTextAtSize('RECEPTOR DE LA DEPENDENCIA', 8) / 2,
+            y: lineY - 13,
+            font: fonts.bold, size: 8, color: C.black
+        });
+        page.drawText('(NOMBRE Y FIRMA)', {
+            x: recX + sigW / 2 - fonts.reg.widthOfTextAtSize('(NOMBRE Y FIRMA)', 7.5) / 2,
+            y: lineY - 24,
+            font: fonts.reg, size: 7.5, color: C.grayText
+        });
+
+        // SECCIÓN 12 — SEGUNDA PÁGINA CON FOTOS (si existen)
+        if (hasPhotos) {
+            const uploadsPath = path.join(process.cwd(), 'uploads', 'servicios');
+
+            // Filtrar las que realmente existen en disco
+            const fotosValidas = fotosArr.filter(f => {
+                const fp = path.join(uploadsPath, f);
+                return fs.existsSync(fp);
+            });
+
+            if (fotosValidas.length > 0) {
+                const photoPage = doc.addPage(PageSizes.Letter);
+                const { width: pw, height: ph } = photoPage.getSize();
+                let py = ph - 35;
+
+                //Header página de fotos
+                rect(photoPage, M, py - 20, pw - 2 * M, 20, C.grayBg);
+                photoPage.drawText(`EVIDENCIA FOTOGRÁFICA — FOLIO: ${safeText(s.folio)}`, {
+                    x: M + 8, y: py - 13,
+                    font: fonts.bold, size: 10, color: C.black
+                });
+                py -= 28;
+
+                // Grid 2 columnas
+                const gap   = 10;
+                const imgW  = (pw - 2 * M - gap) / 2;
+                const imgH  = imgW * 0.72; 
+                let col     = 0;
+                let rowTop  = py;
+                let pageRef = photoPage;
+
+                for (let i = 0; i < fotosValidas.length; i++) {
+                    const filename = fotosValidas[i];
+                    //Nueva página si no cabe
+                    if (rowTop - imgH < 50) {
+                        const np = doc.addPage(PageSizes.Letter);
+                        pageRef = np;
+                        rowTop  = ph - 40;
+                        col     = 0;
+                        //Redibujar header en nueva página
+                        rect(pageRef, M, rowTop - 20, pw - 2 * M, 20, C.grayBg);
+                        pageRef.drawText(`EVIDENCIA FOTOGRÁFICA — ${safeText(s.folio)} (cont.)`, {
+                            x: M + 8, y: rowTop - 13,
+                            font: fonts.bold, size: 10, color: C.black
+                        });
+                        rowTop -= 28;
+                    }
+
+                    const fxFinal = M + col * (imgW + gap);
+                    const fyFinal = rowTop - imgH;
+
+                    try {
+                        const ext      = path.extname(filename).toLowerCase();
+                        const imgBytes = fs.readFileSync(path.join(uploadsPath, filename));
+                        const embedded = ext === '.png'
+                            ? await doc.embedPng(imgBytes)
+                            : await doc.embedJpg(imgBytes);
+
+                        //Marco de la foto
+                        rect(pageRef, fxFinal, fyFinal, imgW, imgH, C.white, C.border, 1);
+                        pageRef.drawImage(embedded, {
+                            x: fxFinal + 2, y: fyFinal + 2,
+                            width: imgW - 4, height: imgH - 4
+                        });
+                    } catch (_) {
+                        //Foto corrupta → placeholder
+                        rect(pageRef, fxFinal, fyFinal, imgW, imgH, C.grayBg, C.border, 1);
+                        pageRef.drawText('Foto no disponible', {
+                            x: fxFinal + imgW / 2 - 42,
+                            y: fyFinal + imgH / 2,
+                            font: fonts.reg, size: 9, color: C.grayText
+                        });
+                    }
+
+                    //Número de foto pequeño debajo
+                    pageRef.drawText(`Foto ${i + 1}`, {
+                        x: fxFinal + 3, y: fyFinal - 9,
+                        font: fonts.reg, size: 7, color: C.grayText
+                    });
+
+                    col++;
+                    if (col >= 2) { col = 0; rowTop -= imgH + 20; }
+                }
+            }
+        }
 
         return await doc.save();
     }
 }
 
-// Exportación correcta
-export const generateServicePDF = async (servicio: any) => {
-    return await PdfGenerator.generate(servicio);
-};
+export const generateServicePDF = async (servicio: any) => PdfGenerator.generate(servicio);

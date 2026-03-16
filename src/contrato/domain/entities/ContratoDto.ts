@@ -9,7 +9,6 @@ export class ContratoDto {
         readonly descripcion: string,
         readonly fechaContrato: Date,
         readonly versionContrato: string,
-        //ubicacion o tambien llamado tipo de instalacion
         readonly ubicacion: string,
         readonly tipoContrato: string,
     ) {}

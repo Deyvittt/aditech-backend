@@ -9,17 +9,13 @@ import { Signale } from "signale";
 
 const signale = new Signale({scope: 'MysqlContratoRepository'});
 
-// Función helper para limpiar undefined y que la BD reciba NULL
 const clean = (val: any) => (val !== undefined ? val : null);
 
 export class MysqlContratoRepository implements ContratoRepository {
     
-    // =================================================================
-    // 1. ADD CONTRATO (Ahora con 10 parámetros para incluir Depto)
-    // =================================================================
+    //ADD CONTRATO
     async addContrato(contrato: Contrato): Promise<Contrato | null> {
         try {
-            // Son 10 signos de interrogación exactos
             const queryStr: string = 'CALL addContrato(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
             const values: any[] = [
                 contrato.enlaceId, 
@@ -31,10 +27,8 @@ export class MysqlContratoRepository implements ContratoRepository {
                 contrato.ubicacion, 
                 contrato.tipoContratoId,
                 new Date(),
-                (contrato as any).departamentoId // El dato #10
+                (contrato as any).departamentoId
             ];
-
-            // console.log("Intentando crear contrato con valores:", values); // Debug opcional
     
             const [result]: any = await query(queryStr, values);
 
@@ -63,12 +57,9 @@ export class MysqlContratoRepository implements ContratoRepository {
         }
     }
     
-    // =================================================================
-    // 2. GET ALL DETALLADO (La Joya de la Corona - Tabla Principal)
-    // =================================================================
+    //GET ALL DETALLADO
     async getAllContratoDetallado(user?: any): Promise<any[] | null> {
         try {
-            // Usamos SQL Puro para controlar el ALIAS y el FILTRO
             let sql = `
                 SELECT 
                     c.idContrato,
@@ -94,14 +85,13 @@ export class MysqlContratoRepository implements ContratoRepository {
             const condiciones: string[] = [];
             const params: any[] = [];
 
-            // --- 🛡️ FILTRO DE SEGURIDAD 🛡️ ---
+            //FILTRO DE SEGURIDAD
             if (user) {
-                const ID_DEPARTAMENTO_GLOBAL = 489; // Sistemas
+                const ID_DEPARTAMENTO_GLOBAL = 489;
                 const esDios = user.rol === 'Superusuario' && user.departamento === ID_DEPARTAMENTO_GLOBAL;
                 const esLector = user.rol === 'Lector';
                 const esSistemas = user.departamento === ID_DEPARTAMENTO_GLOBAL;
 
-                // Si NO es Dios, NO es Lector y NO es Sistemas -> Filtra por su depto (Rómulo)
                 if(!esDios && !esLector && !esSistemas){
                     console.log(`[getContratos] Filtrando por depto ${user.departamento}`);
                     condiciones.push("c.id_departamento = ?");
@@ -123,7 +113,7 @@ export class MysqlContratoRepository implements ContratoRepository {
 
             const contratoDtos: ContratoDto[] = result.map((contrato: any) => {
                 return new ContratoDto(
-                    contrato.id, // Ahora sí existe gracias al alias
+                    contrato.id, 
                     contrato.nombreEnlace,
                     contrato.apellidoPEnlace,
                     contrato.apellidoMEnlace,
@@ -145,11 +135,8 @@ export class MysqlContratoRepository implements ContratoRepository {
         }
     }
 
-    // =================================================================
-    // 3. GET CONTRATOS (Lista simple - También la blindamos)
-    // =================================================================
+    //GET CONTRATOS
     async getContratos(user: any): Promise<Contrato[] | null> {
-        // Cambiamos CALL por SQL directo para aplicar filtros también aquí
         let sql = `
             SELECT * FROM enlace_contrato c
         `;
@@ -187,7 +174,7 @@ export class MysqlContratoRepository implements ContratoRepository {
                 contrato.estatus, 
                 contrato.descripcion, 
                 contrato.fechaContrato, 
-                contrato.createdBy, // Ojo: en BD es createdBy, en Entidad puede ser id_user o userId
+                contrato.createdBy,
                 contrato.id_versionContrato, 
                 contrato.ubicacion, 
                 contrato.id_tipoContrato, 
@@ -202,11 +189,9 @@ export class MysqlContratoRepository implements ContratoRepository {
         }
     }
 
-    // =================================================================
-    // 4. OTROS MÉTODOS (Estos se quedan igual o con pequeños ajustes)
-    // =================================================================
+    // 4. OTROS MÉTODOS
 
-    // By Enlace (Filtra por persona, no necesariamente por depto, lo dejamos así)
+    //By Enlace
     async getContratosByEnlace(enlaceId: string): Promise<Contrato[] | null> {
         try {
             const queryStr: string = 'CALL getContratosByPersonaId(?)';
@@ -223,7 +208,7 @@ export class MysqlContratoRepository implements ContratoRepository {
         }
     }
 
-    // Detallado By Enlace
+    //Detallado By Enlace
     async getAllContratoDetalladoByEnlace(enlaceId: string): Promise<ContratoDto[] | null> {
         try {
             const queryStr: string = 'CALL getAllContratoDetalladoByPersonaId(?)';
@@ -241,7 +226,7 @@ export class MysqlContratoRepository implements ContratoRepository {
         }
     }
 
-    // --- Query SQL Manual para GetById (Ya incluye 'as id', está perfecto) ---
+    //Query SQL Manual para GetById
     private readonly getContratoQuery = `
         SELECT 
             con.idContrato as id,
@@ -268,7 +253,7 @@ export class MysqlContratoRepository implements ContratoRepository {
             con.idContrato = ? AND (con.estatus = 1 OR con.estatus = 3);
     `;
 
-    // --- Mapeador ---
+    //Mapeador
     private mapSqlToContratoDto(contratoSql: any): ContratoDto {
         const contrato: ContratoDto = new ContratoDto(
             contratoSql.id, contratoSql.nombreEnlace, contratoSql.apellidoPEnlace,
@@ -312,7 +297,7 @@ export class MysqlContratoRepository implements ContratoRepository {
         }
     }
 
-    // --- CATÁLOGOS (Igual que antes) ---
+    //CATÁLOGOS (Igual que antes)
     async getAllTipoInstalacion(): Promise<TipoInstalacion[] | null> {
         try {
             const queryStr: string = 'CALL getAllTipoInstalacion()';
@@ -347,7 +332,7 @@ export class MysqlContratoRepository implements ContratoRepository {
         } catch (error: any) { signale.error(error); throw error; }
     }
 
-    // --- UPDATE (Corregido orden y limpieza) ---
+    //UPDATE
     async updateContrato(contratoId: string, updateData: any): Promise<Contrato | null> {
         try{
             const queryStr: string = 'CALL updateContrato(?, ?, ?, ?, ?, ?, ?, ?, ?)'; 
@@ -390,7 +375,7 @@ export class MysqlContratoRepository implements ContratoRepository {
         }
     }
 
-    // --- DELETE ---
+    //DELETE
     async deleteContrato(contratoId: string): Promise<boolean> {
         try {
             const queryStr: string = 'CALL deleteContrato(?)';

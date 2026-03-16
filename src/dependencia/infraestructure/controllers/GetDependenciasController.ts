@@ -1,5 +1,3 @@
-// En: src/dependencia/infrastructure/controllers/GetDependenciasController.ts
-
 import { GetDependenciasUseCase } from "../../application/GetDependenciasUseCase";
 import { Request, Response } from "express";
 

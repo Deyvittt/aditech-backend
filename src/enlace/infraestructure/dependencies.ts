@@ -1,4 +1,4 @@
-// Casos de Uso
+//Casos de uso
 import { AddEnlaceUseCase } from "../application/AddEnlaceUseCase";
 import { GetEnlaceByIdUseCase } from "../application/GetEnlaceByIdUseCase";
 import { GetEnlacesByEstatusUseCase } from "../application/GetEnlacesByEstatusUseCase";
@@ -9,7 +9,7 @@ import { UpdateEnlaceUseCase } from "../application/UpdateEnlaceUseCase";
 import { DeleteEnlaceUseCase } from "../application/DeleteEnlaceUseCase";
 import { GetEnlaceByDireccionUseCase } from "../application/GetEnlaceByDireccionUseCase";
 
-// Controladores
+//Controladores
 import { AddEnlaceController } from "./controllers/AddEnlaceController";
 import { GetEnlaceByIdController } from "./controllers/GetEnlaceByIdController";
 import { GetEnlacesByEstatusController } from "./controllers/GetEnlacesByEstatusController";
@@ -20,10 +20,10 @@ import { UpdateEnlaceController } from "./controllers/UpdateEnlaceController";
 import { DeleteEnlaceController } from "./controllers/DeleteEnlaceController";
 import { GetEnlaceByDireccionController } from "./controllers/GetEnlaceByDireccionController";
 
-// Repositorio
-import { MysqlEnlaceRepository } from "./MysqlEnlaceRepository"; // <-- RUTA CORREGIDA
+//Repositorio
+import { MysqlEnlaceRepository } from "./MysqlEnlaceRepository";
 
-// INSTANCIAS
+//INSTANCIAS
 export const mysqlEnlaceRepository = new MysqlEnlaceRepository();
 
 export const addEnlaceUseCase = new AddEnlaceUseCase(mysqlEnlaceRepository);

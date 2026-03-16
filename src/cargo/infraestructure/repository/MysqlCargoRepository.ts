@@ -8,11 +8,10 @@ const signale = new Signale({scope: 'MysqlCargoRepository'});
 export class MysqlCargoRepository implements CargoRepository {
     
     async getAll(): Promise<Cargo[] | null> {
-        // Usamos un SELECT directo, es más simple para este caso.
         const sql = "SELECT idCargo, nombreCargo FROM cargo_enlace ORDER BY nombreCargo ASC";
         try {
             const [result]: any = await query(sql, []);
-            return result as Cargo[]; // Retornamos el resultado directamente
+            return result as Cargo[]; 
         } catch (error: any) {
             signale.error("Error en getAll Cargos:", error);
             return null;
@@ -22,10 +21,10 @@ export class MysqlCargoRepository implements CargoRepository {
     async getCargoById(cargoId: string): Promise<Cargo | null> {
         try {
             const queryStr: string = 'CALL getCargoById(?)';
-            const values: any[] = [cargoId]; // <- Corregido: Pasar el ID a la consulta
+            const values: any[] = [cargoId];
             const [result]: any = await query(queryStr, values);
 
-            if (result[0].length === 0) { // <- Corregido: typo 'lenght' a 'length'
+            if (result[0].length === 0) {
                 return null;
             }
 

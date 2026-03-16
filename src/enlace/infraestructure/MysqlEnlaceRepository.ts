@@ -10,7 +10,7 @@ const clean = (val: any) => (val !== undefined ? val : null);
 
 export class MysqlEnlaceRepository implements EnlaceRepository {
     
-    // --- 1. ADD ENLACE (Ya no marcará error en dependenciaId) ---
+    //ADD ENLACE
     async addEnlace(enlace: Enlace): Promise<Enlace | null> {
         try {
             const queryStr: string = 'CALL addEnlace(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
@@ -26,14 +26,14 @@ export class MysqlEnlaceRepository implements EnlaceRepository {
                 enlace.userId,
                 enlace.tipoPersonaId || 1,
                 enlace.direccionId,
-                enlace.dependenciaId // <--- Ahora sí existe en la clase Enlace
+                enlace.dependenciaId
             ];
 
             const [result]: any = await query(queryStr, values);
 
             if (result && result[0] && result[0][0]) {
                 const insertedData = result[0][0];
-                enlace.setId(insertedData.idPersona); // Ajustado a tu tabla
+                enlace.setId(insertedData.idPersona);
                 return enlace;
             } else if (result.affectedRows > 0) {
                 enlace.setId(result.insertId);
@@ -46,7 +46,7 @@ export class MysqlEnlaceRepository implements EnlaceRepository {
         }
     }
 
-    // --- 2. GET ENLACES (Mapeo actualizado con dependencia) ---
+    //GET ENLACES
     async getEnlaces(): Promise<Enlace[] | null> {
         try {
             const queryStr: string = 'CALL getEnlaces()';
@@ -63,10 +63,10 @@ export class MysqlEnlaceRepository implements EnlaceRepository {
                 enlace.estatus,
                 enlace.adscripcion_id,
                 enlace.cargo_id,
-                enlace.auth_user_id, // Ojo con el nombre de columna de tu SP
+                enlace.auth_user_id, 
                 enlace.tipoPersona_id,
                 enlace.direccion_id,
-                enlace.dependencia_id, // <--- LEEMOS DEPENDENCIA
+                enlace.dependencia_id,
                 enlace.idPersona
             ));
         } catch (error: any) {
@@ -75,7 +75,7 @@ export class MysqlEnlaceRepository implements EnlaceRepository {
         }
     }
 
-    // --- 3. GET BY ID (Mapeo actualizado) ---
+    //GET BY ID
     async getEnlaceById(id: string): Promise<Enlace | null> {
         try {
             const queryStr: string = 'CALL getEnlaceById(?)';
@@ -96,7 +96,7 @@ export class MysqlEnlaceRepository implements EnlaceRepository {
                 enlaceSql.auth_user_id,
                 enlaceSql.tipoPersona_id,
                 enlaceSql.direccion_id,
-                enlaceSql.dependencia_id, // <--- LEEMOS DEPENDENCIA
+                enlaceSql.dependencia_id,
                 enlaceSql.idPersona
             );
         } catch (error: any) {
@@ -105,7 +105,7 @@ export class MysqlEnlaceRepository implements EnlaceRepository {
         }
     }
  
-    // --- 4. UPDATE (Aquí estaba el error de línea 254) ---
+    //UPDATE
     async updateEnlace(enlaceId: string, updateData: any): Promise<Enlace | null> {
         try {
             const queryStr: string = "CALL updateEnlace(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
@@ -125,7 +125,7 @@ export class MysqlEnlaceRepository implements EnlaceRepository {
                 clean(updateData.createdByUserid),
                 clean(updateData.tipoPersonaId),
                 clean(updateData.direccionId),
-                clean(updateData.dependenciaId) // Ahora sí lo enviamos
+                clean(updateData.dependenciaId)
             ];
 
             const [result]: any = await query(queryStr, values);
@@ -134,7 +134,7 @@ export class MysqlEnlaceRepository implements EnlaceRepository {
                 signale.warn(`Update no afectó filas: ${enlaceId}`);
             }
             
-            // Retornamos el objeto actualizado (aquí fallaba antes)
+            //Retornamos el objeto actualizado
             return new Enlace(
                 updateData.nombre,
                 updateData.apellidoPaterno,
@@ -147,8 +147,8 @@ export class MysqlEnlaceRepository implements EnlaceRepository {
                 updateData.userId,
                 updateData.tipoPersonaId,
                 updateData.direccionId,
-                updateData.dependenciaId || 0, // <--- NUEVO CAMPO
-                Number(enlaceId)                // <--- CONVERTIDO A NÚMERO
+                updateData.dependenciaId || 0, 
+                Number(enlaceId)
             );
 
         } catch (error: any) {
@@ -157,7 +157,7 @@ export class MysqlEnlaceRepository implements EnlaceRepository {
         }
     }
 
-    // ... Resto de métodos igual (getEnlaceCompletoById, deleteEnlace, etc.)
+    //(getEnlaceCompletoById, deleteEnlace, etc.)
     async getEnlaceCompletoById(enlaceId: number): Promise<EnlaceCompletoDto | null> {
         try {
             const queryStr: string = 'CALL getEnlaceCompletoById(?)';

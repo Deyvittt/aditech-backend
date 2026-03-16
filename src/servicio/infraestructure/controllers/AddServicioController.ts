@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { AddServicioUseCase } from "../../application/AddServicioUseCase";
 
-export class AddServicioController {
+export class AddServicioController { 
     constructor(readonly addServicioUseCase: AddServicioUseCase) {}
 
     async run(req: Request, res: Response) {
@@ -14,15 +14,12 @@ export class AddServicioController {
                 return res.status(401).json({ message: "Usuario no identificado." });
             }
 
-            // 2. PREPARAMOS LOS DATOS A GUARDAR
-            // Mezclamos lo que viene del formulario con los datos automáticos del usuario
             const dataToSave = {
                 ...req.body,
                 
-                // Inyectamos el ID del creador
+                
                 createdBy: user.idUsuario || user.id, 
                 
-                // Inyectamos el Departamento (ESTO ES LA CLAVE PARA QUE RÓMULO VEA LO SUYO)
                 departamentoId: user.departamento 
             };
             
@@ -30,9 +27,6 @@ export class AddServicioController {
             console.log("--> AddServicioController - Departamento a guardar:", dataToSave.departamentoId);
             console.log("--> AddServicioController - Payload completo:", dataToSave);
 
-            // 3. PASAMOS EL PAQUETE COMPLETO AL CASO DE USO
-            // (Asegúrate de que en el Caso de Uso llames a 'addServicio' del repo)
-            // (Nota: En tu código anterior del useCase llamabas a 'execute', aquí asumimos que es igual)
             const nuevoServicio = await this.addServicioUseCase.execute(dataToSave); 
             
             if (nuevoServicio) {

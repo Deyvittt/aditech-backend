@@ -5,10 +5,7 @@ export class UpdateContratoController {
     constructor(private updateContratoUseCase: UpdateContratoUseCase) {}
 
     async run(req: Request, res: Response){
-        // --- ¡CORRECCIÓN AQUÍ! ---
-        // Leemos el 'id' de la URL, no 'contratoId'
         const contratoId: string = req.params.id; 
-        // -------------------------
 
         const updateData: any = req.body;
 
@@ -27,7 +24,6 @@ export class UpdateContratoController {
                 contrato: contrato
             });
         } catch (error: any) {
-            // Mandamos 500 (Error de Servidor) en lugar de 404 para ser más claros
             res.status(500).json({
                 msg: 'Error interno al actualizar el contrato',
                 error: error.message

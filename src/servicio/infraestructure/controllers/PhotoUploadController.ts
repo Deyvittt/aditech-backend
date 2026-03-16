@@ -3,13 +3,11 @@ import multer, { FileFilterCallback } from "multer";
 import path from "path";
 import fs from "fs";
 
-// Definimos el tipo para el callback del fileFilter
 type Cb = FileFilterCallback;
 
 const storage = multer.diskStorage({
     destination: (req: Request, file: Express.Multer.File, cb) => {
         const uploadPath = path.join(process.cwd(), 'uploads', 'servicios');
-        console.log(`[ESPÍA 1] Intentando crear o usar la carpeta: ${uploadPath}`);
         if (!fs.existsSync(uploadPath)) {
             fs.mkdirSync(uploadPath, { recursive: true });
         }
@@ -18,7 +16,8 @@ const storage = multer.diskStorage({
     filename: (req: Request, file: Express.Multer.File, cb) => {
         const timestamp = Date.now();
         const ext = path.extname(file.originalname);
-        const name = path.basename(file.originalname, ext);
+        const name = path.basename(file.originalname, ext)
+            .replace(/\s+/g, '_');
         cb(null, `${timestamp}-${name}${ext}`);
     }
 });
@@ -34,16 +33,17 @@ const fileFilter = (req: Request, file: Express.Multer.File, cb: Cb) => {
 const upload = multer({
     storage: storage,
     fileFilter: fileFilter,
-    limits: {
-        fileSize: 5 * 1024 * 1024 // 5MB
-    }
+    limits: { fileSize: 5 * 1024 * 1024 } //5MB por foto
 });
 
 export class PhotoUploadController {
+
+    //Middleware que acepta hasta 8 fotos
     public uploadMiddleware = upload.array('fotos', 8);
 
+    // POST /api/fotos/upload
+    // Recibe las fotos, las guarda en disco y devuelve los nombres
     async uploadPhotos(req: Request, res: Response): Promise<void> {
-        console.log('[ESPÍA 2] ¡Multer terminó! El archivo se guardó. Procesando la respuesta.');
         try {
             const files = req.files as Express.Multer.File[];
             if (!files || files.length === 0) {
@@ -52,13 +52,39 @@ export class PhotoUploadController {
             }
 
             const filenames = files.map(file => file.filename);
+
             res.status(200).json({
                 message: `${files.length} foto(s) subida(s) exitosamente`,
-                filenames: filenames
+                filenames: filenames  
             });
         } catch (error: any) {
-            console.error('Error al subir fotos:', error);
-            res.status(500).json({ message: 'Error al subir las fotos', error: error.message });
+            res.status(500).json({ 
+                message: 'Error al subir las fotos', 
+                error: error.message 
+            });
+        }
+    }
+
+    // DELETE /api/fotos/:filename
+    async deletePhoto(req: Request, res: Response): Promise<void> {
+        try {
+            const { filename } = req.params;
+
+            const safeFilename = path.basename(filename);
+            const filePath = path.join(process.cwd(), 'uploads', 'servicios', safeFilename);
+
+            if (!fs.existsSync(filePath)) {
+                res.status(404).json({ message: 'Foto no encontrada' });
+                return;
+            }
+
+            fs.unlinkSync(filePath);
+            res.status(200).json({ message: 'Foto eliminada correctamente' });
+        } catch (error: any) {
+            res.status(500).json({ 
+                message: 'Error al eliminar la foto', 
+                error: error.message 
+            });
         }
     }
 }

@@ -6,10 +6,8 @@ export class GetServicioByIdController {
 
     async run(req: Request, res: Response) {
         try {
-            // CAMBIO: Convertimos el string a número con parseInt
             const id = parseInt(req.params.id);
 
-            // Validación anti-tontos
             if (isNaN(id)) {
                 return res.status(400).json({ error: "ID inválido" });
             }

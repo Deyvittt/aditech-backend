@@ -1,19 +1,17 @@
 import express from 'express';
-// --- ¡AQUÍ ESTÁ LA CORRECCIÓN! ( '../../middleware/...' ) ---
 import { 
     verifyToken, 
     canRead, 
     canWrite, 
     isSuperusuario 
-} from '../../middlewares/AuthMiddleware'; // <-- Ruta corregida (singular)
+} from '../../middlewares/AuthMiddleware';
 
-// --- El resto de tus imports originales ---
 import {
     addContratoController,
     getContratoByEnlaceController,
     getContratosController,
     getAllContratoDetalladoController,
-    getContratoByIdController, // Unificamos el get by id a esta
+    getContratoByIdController,
     getAllContratoDetalladoByEnlaceController,
     deleteContratoController,
     updateContratoController,
@@ -23,82 +21,80 @@ import {
     getVersionesByTipoContratoIdController
 } from './dependencies';
 
-// --- Tu router original ---
 export const contratoRouter = express.Router();
 
-// --- Rutas de Tipos (con seguridad añadida) ---
+//Rutas de Tipos (con seguridad)
 contratoRouter.get(
     '/tipos-instalacion', 
-    verifyToken, // <-- Seguridad
-    canRead,     // <-- Seguridad
+    verifyToken,
+    canRead,
     getAllTipoInstalacionController.run.bind(getAllTipoInstalacionController)
 );
 contratoRouter.get(
     '/tipos-contrato', 
-    verifyToken, // <-- Seguridad
-    canRead,     // <-- Seguridad
+    verifyToken,
+    canRead,
     getAllTipoContratoController.run.bind(getAllTipoContratoController)
 );
 contratoRouter.get(
     '/versiones', 
-    verifyToken, // <-- Seguridad
-    canRead,     // <-- Seguridad
+    verifyToken,
+    canRead,
     getAllVersionContratoController.run.bind(getAllVersionContratoController)
 );
 contratoRouter.get(
     '/versiones/:tipoContratoId', 
-    verifyToken, // <-- Seguridad
-    canRead,     // <-- Seguridad
+    verifyToken,
+    canRead,
     getVersionesByTipoContratoIdController.run.bind(getVersionesByTipoContratoIdController)
 );
 
-// --- Rutas de Contratos (con seguridad añadida) ---
 contratoRouter.post(
     '/', 
-    verifyToken, // <-- Seguridad
-    canWrite,    // <-- Seguridad (Solo S y N)
+    verifyToken,
+    canWrite,
     addContratoController.run.bind(addContratoController)
 );
 contratoRouter.get(
     '/', 
-    verifyToken, // <-- Seguridad
-    canRead,     // <-- Seguridad
+    verifyToken,
+    canRead,
     getContratosController.run.bind(getContratosController)
 );
 contratoRouter.get(
     '/detallados', 
-    verifyToken, // <-- Seguridad
-    canRead,     // <-- Seguridad
+    verifyToken,
+    canRead,
     getAllContratoDetalladoController.run.bind(getAllContratoDetalladoController)
 );
 contratoRouter.get(
     '/detallados/enlaces/:enlaceId', 
-    verifyToken, // <-- Seguridad
-    canRead,     // <-- Seguridad
+    verifyToken,
+    canRead,
     getAllContratoDetalladoByEnlaceController.run.bind(getAllContratoDetalladoByEnlaceController)
 );
 contratoRouter.get(
     '/enlaces/:enlaceId', 
-    verifyToken, // <-- Seguridad
-    canRead,     // <-- Seguridad
+    verifyToken,
+    canRead,
     getContratoByEnlaceController.run.bind(getContratoByEnlaceController)
 );
-// --- Rutas para un contrato específico por ID (con seguridad añadida) ---
+//Rutas para un contrato específico por ID (con seguridad)
 contratoRouter.get(
     '/:id', 
-    verifyToken, // <-- Seguridad
-    canRead,     // <-- Seguridad
+    verifyToken,
+    canRead,
     getContratoByIdController.run.bind(getContratoByIdController)
 );
 contratoRouter.patch(
     '/:id', 
-    verifyToken, // <-- Seguridad
-    canWrite,    // <-- Seguridad (Solo S y N)
+    verifyToken,
+    canWrite,
     updateContratoController.run.bind(updateContratoController)
-); // Usamos /:id para consistencia
+);
 contratoRouter.delete(
     '/:id', 
-    verifyToken,    // <-- Seguridad
-    isSuperusuario, // <-- Seguridad (¡Solo S!)
+    verifyToken,
+    isSuperusuario,
     deleteContratoController.run.bind(deleteContratoController)
-); // Usamos /:id para consistencia
+);

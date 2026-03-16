@@ -15,8 +15,7 @@ import {
 
 const usuarioRouter = express.Router();
 
-// --- NUEVA RUTA GET (LISTAR USUARIOS) ---
-// Esta ruta responde a GET /usuarios
+//GET /usuarios
 usuarioRouter.get(
     '/', 
     verifyToken, 
@@ -24,7 +23,6 @@ usuarioRouter.get(
     (req, res) => getAllUsuariosController.run(req, res)
 );
 
-// --- RUTAS EXISTENTES ---
 usuarioRouter.post(
     '/auth/register', 
     verifyToken,    

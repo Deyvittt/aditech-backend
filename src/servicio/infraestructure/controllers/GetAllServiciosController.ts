@@ -11,11 +11,9 @@ export class GetAllServiciosController {
             
             const servicios = await this.getAllServiciosUseCase.execute(user, estatus);
 
-            // --- ANTI-CACHÉ ---
             res.header('Cache-Control', 'private, no-cache, no-store, must-revalidate');
             res.header('Expires', '-1');
             res.header('Pragma', 'no-cache');
-            // ------------------
 
             return res.status(200).json({ 
                 servicios: servicios || [] 

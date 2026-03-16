@@ -1,4 +1,4 @@
-import { UsuarioDto } from "./UsuarioDto"; // ← AGREGAR ESTA LÍNEA
+import { UsuarioDto } from "./UsuarioDto";
 
 export class Usuario {
     constructor(

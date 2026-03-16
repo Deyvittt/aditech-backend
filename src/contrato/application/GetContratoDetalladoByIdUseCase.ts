@@ -5,7 +5,6 @@ export class GetContratoDetalladoByIdUseCase {
     constructor(private contratoRepository: ContratoRepository) {}
 
     async run(contratoId: number): Promise<ContratoDto | null> {
-        // Esta línea ya no dará error
         return this.contratoRepository.getContratoDetalladoById(contratoId);
     }
 }

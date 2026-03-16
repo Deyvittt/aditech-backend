@@ -8,7 +8,6 @@ export interface EnlaceRepository {
     updateEnlace(id: string, enlace: any): Promise<Enlace | null>;
     deleteEnlace(id: string): Promise<boolean>;
     
-    // Métodos extra que tenías
     getEnlacesByEstatus(estatus: number): Promise<Enlace[] | null>;
     getEnlaceCompletoById(id: number): Promise<EnlaceCompletoDto | null>;
     getAllEnlaceDetallado(): Promise<any[] | null>;

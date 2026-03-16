@@ -9,7 +9,6 @@ export class GetCargosController {
             const cargos = await this.getCargosUseCase.execute();
 
             if (cargos) {
-                // El frontend espera un objeto con una propiedad "cargos"
                 return res.status(200).json({ cargos });
             }
 

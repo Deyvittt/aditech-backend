@@ -1,13 +1,8 @@
-// CÓDIGO CORREGIDO PARA: GetServicioParaFormularioController.ts
-
 import { Request, Response } from "express";
-// ¡AQUÍ ESTÁ EL PRIMER CAMBIO! Importamos el Caso de Uso
 import { GetServicioParaFormularioUseCase } from "../../application/GetServicioParaFormularioUseCase"; 
 
 export class GetServicioParaFormularioController {
     
-    // ¡AQUÍ ESTÁ EL SEGUNDO CAMBIO! 
-    // Ahora el constructor pide el 'Caso de Uso', no el 'Repositorio'
     constructor(
         private readonly getServicioParaFormularioUseCase: GetServicioParaFormularioUseCase
     ) {}
@@ -16,8 +11,6 @@ export class GetServicioParaFormularioController {
         try {
             const { id } = req.params;
             
-            // ¡AQUÍ ESTÁ EL TERCER CAMBIO! 
-            // Llamamos al 'Caso de Uso' (el .execute)
             const servicio = await this.getServicioParaFormularioUseCase.execute(id); 
 
             if (servicio) {

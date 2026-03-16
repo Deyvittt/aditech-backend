@@ -15,7 +15,6 @@ export interface Servicio {
     tipoEnvio: string;
     estatus: number;
     
-    // Propiedades que vienen de las tablas relacionadas (JOINs)
     tipoServicio: string;
     codigoServicio?: string;
     contratoId: number;
@@ -25,12 +24,10 @@ export interface Servicio {
     dependencia: string;
     cargo: string;
     
-    // IDs para los formularios
     dependenciaId?: number;
     direccionId?: number;
     cargoId?: number;
     
-    // Campos de auditoría
     createdBy?: number;
     updatedBy?: number;
     createdAt?: Date;

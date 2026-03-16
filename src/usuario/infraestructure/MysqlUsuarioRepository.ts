@@ -81,7 +81,6 @@ export class MysqlUsuarioRepository implements UsuarioRepository {
             
             await query(sql, params);
             
-            // Retornamos el usuario creado buscándolo por username para confirmar que se guardó
             return await this.getUsuarioByUsername(usuario.username);
 
         } catch (error) {
@@ -90,7 +89,6 @@ export class MysqlUsuarioRepository implements UsuarioRepository {
         }
     }
 
-    // Método para listar (ya estaba bien)
     async getAllUsuarios(): Promise<any[]> {
         const sql = "CALL getAllUsuariosDetallado()";
         try {
@@ -102,7 +100,6 @@ export class MysqlUsuarioRepository implements UsuarioRepository {
         }
     }
 
-    // Método para actualizar (ya estaba bien)
     async updateUsuario(id: string, data: any): Promise<boolean> {
         const sql = "CALL updateUsuario(?, ?, ?, ?, ?, ?, ?, ?, ?)";
         const params = [
@@ -113,8 +110,8 @@ export class MysqlUsuarioRepository implements UsuarioRepository {
             data.correo,
             data.telefono,
             data.nombreUsuario,
-            data.cargoId,        // Usamos el ID que viene del front
-            data.departamentoId  // Usamos el ID que viene del front
+            data.cargoId,        
+            data.departamentoId
         ];
         try{
             const [result]: any = await query(sql, params);
@@ -125,7 +122,6 @@ export class MysqlUsuarioRepository implements UsuarioRepository {
         }
     }
 
-    // Método para eliminar (ya estaba bien)
     async deleteUsuario(id: string): Promise<boolean> {
         const sql = "CALL deleteUsuario(?)";
         try {

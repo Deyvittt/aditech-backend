@@ -1,13 +1,14 @@
 import express from "express";
-// --- ¡IMPORTACIONES DE SEGURIDAD AÑADIDAS! ---
+
+import { photoUploadController } from '../infraestructure/controllers/PhotoUploadController';
+
 import { 
     verifyToken, 
     canRead, 
     canWrite,
     isSuperusuario
-} from '../../middlewares/AuthMiddleware'; // <-- Asegúrate que la ruta sea correcta
+} from '../../middlewares/AuthMiddleware'; 
 
-// --- Tus imports de controladores (sin cambios) ---
 import {
     getStatsController,
     getAllServiciosController,
@@ -22,119 +23,120 @@ import {
     getServicioParaFormularioController
 } from "./dependencies";
 
-// --- Import del controlador de fotos (sin cambios) ---
-import { photoUploadController } from "./controllers/PhotoUploadController";
-
-// --- Creación del Router (sin cambios) ---
 export const servicioRouter = express.Router();
 
-
-// ===============================================
 // RUTAS PRINCIPALES DEL CRUD
-// ===============================================
-// POST (Crear servicio: Solo S y N)
+
+// POST (Crear servicio)
 servicioRouter.post(
-    "/", 
-    verifyToken, // <-- Seguridad
-    canWrite,    // <-- Seguridad (S y N)
+    "/",
+    verifyToken,
+    canWrite,
     addServicioController.run.bind(addServicioController)
 );
 
-// GET (Leer lista detallada: Todos)
+// GET (Leer lista detallada)
 servicioRouter.get(
-    "/detallados", 
-    verifyToken, // <-- Seguridad
-    canRead,     // <-- Seguridad (S, N, L)
+    "/detallados",
+    verifyToken,
+    canRead,
     getAllServiciosController.run.bind(getAllServiciosController)
 );
 
-// GET (Leer uno detallado por ID: Todos)
+// GET (Leer uno detallado por ID)
 servicioRouter.get(
-    "/detallados/:id", 
-    verifyToken, // <-- Seguridad
-    canRead,     // <-- Seguridad (S, N, L)
-    getServicioParaFormularioController.run.bind(getServicioParaFormularioController) // <-- ¡EL NUEVO!
+    "/detallados/:id",
+    verifyToken,
+    canRead,
+    getServicioParaFormularioController.run.bind(getServicioParaFormularioController)
 );
 
-// PATCH (Actualizar servicio: Solo S y N)
+// PATCH (Actualizar servicio)
 servicioRouter.patch(
-    "/:id", 
-    verifyToken, // <-- Seguridad
-    canWrite,    // <-- Seguridad (S y N)
+    "/:id",
+    verifyToken,
+    canWrite,
     updateServicioController.run.bind(updateServicioController)
 );
 
+// RUTAS DE FOTOS
 
-// ===============================================
-// RUTAS DE UTILIDADES
-// ===============================================
-// POST (Subir fotos: Solo S y N, ya que es parte de crear/editar)
+// POST (Subir fotos)
 servicioRouter.post(
-    "/upload-photos", 
-    verifyToken, // <-- Seguridad
-    canWrite,    // <-- Seguridad (S y N)
-    photoUploadController.uploadMiddleware, 
+    '/upload-photos',
+    verifyToken,
+    canWrite,
+    photoUploadController.uploadMiddleware,
     photoUploadController.uploadPhotos.bind(photoUploadController)
 );
 
-// GET (Generar reporte PDF: Todos)
+// DELETE (Eliminar una foto del disco)
+servicioRouter.delete(
+    '/fotos/:filename',
+    verifyToken,
+    canWrite,
+    photoUploadController.deletePhoto.bind(photoUploadController)
+);
+
+// RUTAS DE REPORTES Y ESTADÍSTICAS
+
+// GET (Generar reporte PDF)
 servicioRouter.get(
-    "/reporte/:id", 
-    verifyToken, // <-- Seguridad
-    canRead,     // <-- Seguridad (S, N, L)
+    "/reporte/:id",
+    verifyToken,
+    canRead,
     getPdfController.run.bind(getPdfController)
 );
 
-// GET (Obtener estadísticas: Todos)
+// GET (Obtener estadísticas del dashboard)
 servicioRouter.get(
-    "/estadisticas", 
-    verifyToken, // <-- Seguridad
-    canRead,     // <-- Seguridad (S, N, L)
+    "/estadisticas",
+    verifyToken,
+    canRead,
     getStatsController.run.bind(getStatsController)
 );
 
+// RUTAS DE CATÁLOGOS
 
-// ===============================================
-// RUTAS DE CATÁLOGOS (Todos pueden leer)
-// ===============================================
 servicioRouter.get(
-    "/catalogos/ubicaciones", 
-    verifyToken, // <-- Seguridad
-    canRead,     // <-- Seguridad (S, N, L)
+    "/catalogos/ubicaciones",
+    verifyToken,
+    canRead,
     getCatalogosController.getUbicaciones.bind(getCatalogosController)
 );
 
 servicioRouter.get(
-    "/catalogos/tipos-envio", 
-    verifyToken, // <-- Seguridad
-    canRead,     // <-- Seguridad (S, N, L)
+    "/catalogos/tipos-envio",
+    verifyToken,
+    canRead,
     getCatalogosController.getTiposEnvio.bind(getCatalogosController)
 );
 
 servicioRouter.get(
-    "/tipos/servicio", 
-    verifyToken, // <-- Seguridad
-    canRead,     // <-- Seguridad (S, N, L)
+    "/tipos/servicio",
+    verifyToken,
+    canRead,
     getAllTipoServicioController.run.bind(getAllTipoServicioController)
 );
 
 servicioRouter.get(
-    "/tipos/actividad", 
-    verifyToken, // <-- Seguridad
-    canRead,     // <-- Seguridad (S, N, L)
+    "/tipos/actividad",
+    verifyToken,
+    canRead,
     getAllTipoActividadController.run.bind(getAllTipoActividadController)
 );
 
 servicioRouter.get(
-    "/tipos/estados-servicio", 
-    verifyToken, // <-- Seguridad
-    canRead,     // <-- Seguridad (S, N, L)
+    "/tipos/estados-servicio",
+    verifyToken,
+    canRead,
     getAllEstadoServicioController.run.bind(getAllEstadoServicioController)
 );
 
+// DELETE (Borrado lógico)
 servicioRouter.delete(
-    '/:id', 
-    verifyToken, 
+    '/:id',
+    verifyToken,
     isSuperusuario,
     deleteServicioController.run.bind(deleteServicioController)
-)
+);

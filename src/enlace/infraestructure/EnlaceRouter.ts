@@ -1,13 +1,13 @@
 import express from 'express';
-// --- ¡IMPORTACIONES DE SEGURIDAD AÑADIDAS! ---
+
 import { 
     verifyToken, 
     canRead, 
     canWrite, 
     isSuperusuario 
-} from '../../middlewares/AuthMiddleware'; // <-- Asegúrate que la ruta sea correcta
+} from '../../middlewares/AuthMiddleware';
 
-// --- Tus imports de controladores (sin cambios) ---
+
 import {
     addEnlaceController,
     getEnlaceByIdController,
@@ -20,83 +20,76 @@ import {
     getEnlaceByDireccionController
 } from './dependencies';
 
-// --- Creación del Router (sin cambios) ---
 export const enlaceRouter = express.Router();
 
-// ===============================================
-// Rutas generales
-// ===============================================
-// GET (Leer lista general: Todos)
+//Rutas generales
+//GET (Leer lista general)
 enlaceRouter.get(
     '/', 
-    verifyToken, // <-- Seguridad
-    canRead,     // <-- Seguridad (S, N, L)
+    verifyToken,
+    canRead,
     getEnlacesController.run.bind(getEnlacesController)
 );
 
-// POST (Crear enlace: Solo S y N)
+//POST (Crear enlace)
 enlaceRouter.post(
     '/', 
-    verifyToken, // <-- Seguridad
-    canWrite,    // <-- Seguridad (S y N)
+    verifyToken,
+    canWrite,
     addEnlaceController.run.bind(addEnlaceController)
 );
 
-// GET (Leer lista detallada: Todos)
+//GET (Leer lista detallada)
 enlaceRouter.get(
     '/detallados', 
-    verifyToken, // <-- Seguridad
-    canRead,     // <-- Seguridad (S, N, L)
+    verifyToken,
+    canRead,
     getAllEnlaceDetalladoController.run.bind(getAllEnlaceDetalladoController)
 );
 
-// GET (Leer por estatus: Todos)
+//GET (Leer por estatus)
 enlaceRouter.get(
     '/estatus/:estatusId', 
-    verifyToken, // <-- Seguridad
-    canRead,     // <-- Seguridad (S, N, L)
+    verifyToken,
+    canRead,
     getEnlacesByEstatusController.run.bind(getEnlacesByEstatusController)
 );
 
-// ===============================================
-// Rutas para buscar por ID o relación (Todos pueden leer)
-// ===============================================
+//Rutas para buscar por ID o relación
 enlaceRouter.get(
     '/completo/:id', 
-    verifyToken, // <-- Seguridad
-    canRead,     // <-- Seguridad (S, N, L)
+    verifyToken,
+    canRead,
     getEnlaceCompletoByIdController.run.bind(getEnlaceCompletoByIdController)
 );
 
 enlaceRouter.get(
     '/direccion/:id', 
-    verifyToken, // <-- Seguridad
-    canRead,     // <-- Seguridad (S, N, L)
+    verifyToken,
+    canRead,
     getEnlaceByDireccionController.run.bind(getEnlaceByDireccionController)
 );
 
 enlaceRouter.get(
     '/:id', 
-    verifyToken, // <-- Seguridad
-    canRead,     // <-- Seguridad (S, N, L)
+    verifyToken,
+    canRead,
     getEnlaceByIdController.run.bind(getEnlaceByIdController)
 );
 
-// ===============================================
-// Rutas para modificar/eliminar
-// ===============================================
-// PATCH (Actualizar enlace: Solo S y N)
+//Rutas para modificar/eliminar
+//PATCH (Actualizar enlace)
 enlaceRouter.patch(
     '/:id', 
-    verifyToken, // <-- Seguridad
-    canWrite,    // <-- Seguridad (S y N)
+    verifyToken,
+    canWrite,
     updateEnlaceController.run.bind(updateEnlaceController)
 );
 
-// DELETE (Borrar enlace: ¡Solo S!)
+//DELETE (Borrar enlace)
 enlaceRouter.delete(
     '/:id', 
-    verifyToken,    // <-- Seguridad
-    isSuperusuario, // <-- Seguridad (¡Solo S!)
+    verifyToken,
+    isSuperusuario,
     deleteEnlaceController.run.bind(deleteEnlaceController)
 );

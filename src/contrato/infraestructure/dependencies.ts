@@ -14,10 +14,10 @@ import { GetVersionesByTipoContratoIdUseCase } from "../application/GetVersiones
 import { AddContratoController } from "./controllers/AddContratoController";
 import { GetContratosByEnlaceController } from "./controllers/GetContratosByEnlaceController";
 import { GetContratosController } from "./controllers/GetContratosController";
-// CORRECCIÓN 1: El nombre de la clase aquí era incorrecto
+
 import { GetAllContratoDetalladoController } from "./controllers/GetAllContratoDetalladoController"; 
 import { GetAllContratoDetalladoByEnlaceController } from "./controllers/GetAllContratoDetalladoByEnlaceController";
-import { GetContratoByIdController } from "./controllers/GetContratoByIdController"; // Importamos el nuevo
+import { GetContratoByIdController } from "./controllers/GetContratoByIdController";
 import { UpdateContratoController } from "./controllers/UpdateContratoController";
 import { DeleteContratoController } from "./controllers/DeleteContratoController";
 import { GetAllTipoInstalacionController } from "./controllers/GetAllTipoInstalacionController";
@@ -25,13 +25,13 @@ import { GetAllTipoContratoController } from "./controllers/GetAllTipoContratoCo
 import { GetAllVersionContratoController } from "./controllers/GetAllVersionContratoController";
 import { GetVersionesByTipoContratoIdController } from "./controllers/GetVersionesByTipoContratoIdController";
 
-// CORRECCIÓN 2: La ruta a tu repositorio estaba mal
+
 import { MysqlContratoRepository } from "./adapters/MysqlContratoRepository";
 
-// 1. Instancia del Repositorio (No necesita ser exportado si solo se usa aquí)
+//Instancia del Repositorio
 const mysqlContratoRepository = new MysqlContratoRepository();
 
-// 2. Instancias de Casos de Uso
+//Instancias de Casos de Uso
 const addContratoUseCase = new AddContratoUseCase(mysqlContratoRepository);
 const getContratoByEnlaceUseCase = new GetContratosByEnlaceUseCase(mysqlContratoRepository);
 const getContratosUseCase = new GetContratosUseCase(mysqlContratoRepository);
@@ -45,11 +45,10 @@ const getAllTipoContratoUseCase = new GetAllTipoContratoUseCase(mysqlContratoRep
 const getAllVersionContratoUseCase = new GetAllVersionContratoUseCase(mysqlContratoRepository);
 const getVersionesByTipoContratoIdUseCase = new GetVersionesByTipoContratoIdUseCase(mysqlContratoRepository);
 
-// 3. Instancias de Controladores (Estos sí se exportan para el Router)
+//Instancias de Controladores
 export const addContratoController = new AddContratoController(addContratoUseCase);
 export const getContratoByEnlaceController = new GetContratosByEnlaceController(getContratoByEnlaceUseCase);
 export const getContratosController = new GetContratosController(getContratosUseCase);
-// CORRECCIÓN 3: El nombre de la clase aquí también era incorrecto
 export const getAllContratoDetalladoController = new GetAllContratoDetalladoController(getAllContratoDetalladoUseCase);
 export const getAllContratoDetalladoByEnlaceController = new GetAllContratoDetalladoByEnlaceController(getAllContratoDetalladoByEnlaceUseCase);
 export const updateContratoController = new UpdateContratoController(updateContratoUseCase);
@@ -58,5 +57,4 @@ export const getAllTipoInstalacionController = new GetAllTipoInstalacionControll
 export const getAllTipoContratoController = new GetAllTipoContratoController(getAllTipoContratoUseCase);
 export const getAllVersionContratoController = new GetAllVersionContratoController(getAllVersionContratoUseCase);
 export const getVersionesByTipoContratoIdController = new GetVersionesByTipoContratoIdController(getVersionesByTipoContratoIdUseCase);
-// Se añade el nuevo controlador que necesitamos
 export const getContratoByIdController = new GetContratoByIdController(getContratoDetalladoByIdUseCase);

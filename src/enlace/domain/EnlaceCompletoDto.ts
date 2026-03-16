@@ -1,12 +1,10 @@
 import { EnlaceDto } from "./EnlaceDto";
 
-// Define la subclase
 export class EnlaceCompletoDto extends EnlaceDto {
     constructor(
         readonly dependenciaId: string,
         readonly cargoId: string,
         readonly direccionId: string,
-        //o tambien llamado departamento
         readonly adscripcionId: string,
         readonly tipoPersonaId: string,
         readonly userId: string,

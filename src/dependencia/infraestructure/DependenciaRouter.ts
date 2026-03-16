@@ -1,5 +1,3 @@
-// En: src/dependencia/infrastructure/DependenciaRouter.ts
-
 import express from 'express';
 import { getDependenciasController } from './dependencies';
 
@@ -10,4 +8,3 @@ dependenciaRouter.get(
     getDependenciasController.run.bind(getDependenciasController)
 );
 
-// Aquí puedes añadir más rutas para dependencias en el futuro

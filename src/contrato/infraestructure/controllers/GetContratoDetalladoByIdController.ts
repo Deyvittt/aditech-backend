@@ -6,10 +6,8 @@ export class GetContratoByIdController {
 
     async run(req: Request, res: Response) {
         try {
-            // 1. Leemos el parámetro correcto 'id' y lo convertimos a número
             const contratoId = parseInt(req.params.id, 10);
             
-            // 2. Pasamos el número al caso de uso
             const contrato = await this.useCase.run(contratoId);
 
             if (contrato) {

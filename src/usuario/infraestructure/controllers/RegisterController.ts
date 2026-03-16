@@ -10,7 +10,7 @@ export class RegisterController {
             const request = req.body;
 
             const usuario = new Usuario(
-                0, // idUsuario (se asignará en la BD)
+                0,
                 request.nombre,
                 request.apellidoP,
                 request.apellidoM,
@@ -20,9 +20,9 @@ export class RegisterController {
                 request.departamento,
                 request.password,
                 request.username,
-                null, // createdBy
-                null, // updatedBy
-                request.rol || 'Normal' // rol por defecto
+                null, 
+                null,
+                request.rol || 'Normal'
             );
 
             const usuarioAdded = await this.addUsuarioUseCase.run(usuario);
